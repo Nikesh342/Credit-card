@@ -1,0 +1,228 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from imblearn.over_sampling import SMOTE
+from sklearn.metrics import classification_report
+
+# loading the dataset to a Pandas DataFrame
+credit_card_data = pd.read_csv('/content/credit_card.csv')
+
+
+
+credit_card_data.head()
+
+credit_card_data.tail()
+
+credit_card_data.info()
+
+credit_card_data.isnull().sum()
+
+credit_card_data['Class'].value_counts()
+
+# separating the data for analysis
+legit = credit_card_data[credit_card_data.Class == 0]
+fraud = credit_card_data[credit_card_data.Class == 1]
+
+print(legit.shape)
+print(fraud.shape)
+
+# statistical measures of the data
+legit.Amount.describe()
+
+fraud.Amount.describe()
+
+# compare the values for both transactions
+credit_card_data.groupby('Class').mean()
+
+legit_sample = legit.sample(n=492)
+
+new_dataset = pd.concat([legit_sample, fraud], axis=0)
+
+new_dataset.head()
+
+new_dataset.tail()
+
+new_dataset['Class'].value_counts()
+
+new_dataset.groupby('Class').mean()
+
+X = new_dataset.drop(columns='Class', axis=1)
+Y = new_dataset['Class']
+
+print(X)
+
+print(Y)
+
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, stratify=Y, random_state=2)
+
+print(X.shape, X_train.shape, X_test.shape)
+
+# Handle Class Imbalance using SMOTE
+smote = SMOTE(random_state=42)
+X_train_resampled, Y_train_resampled = smote.fit_resample(X_train, Y_train)
+
+Models Used in Testing.
+
+LR= LogisticRegression()
+
+LR.fit(X_train,Y_train)
+
+# accuracy on training data
+X_train_prediction = LR.predict(X_train)
+training_data_accuracy = accuracy_score(X_train_prediction, Y_train)
+
+
+Y_pred= LR.predict(X_test)
+
+# accuracy on test data
+X_test_prediction = LR.predict(X_test)
+test_data_accuracy = accuracy_score(X_test_prediction, Y_test)
+
+print('Accuracy on Training data : ', training_data_accuracy)
+
+print('Accuracy score on Test Data : ', test_data_accuracy)
+
+print(classification_report(Y_test,Y_pred))
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, roc_curve, auc
+
+# Confusion Matrix
+cm = confusion_matrix(Y_test, Y_pred)
+plt.figure(figsize=(6,4))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Negative', 'Positive'], yticklabels=['Negative', 'Positive'])
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix- LogisticRegression')
+plt.show()
+
+# ROC Curve (Only for binary classification)
+if len(set(Y_test)) == 2:  # Check if it's binary classification
+    Y_prob = LR.predict_proba(X_test)[:, 1]  # Get probabilities of positive class
+    fpr, tpr, _ = roc_curve(Y_test, Y_prob)
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure(figsize=(6,4))
+    plt.plot(fpr, tpr, color='blue', label=f'ROC curve (area = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='gray', linestyle='--')  # Diagonal line
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic (ROC) Curve')
+    plt.legend(loc='lower right')
+    plt.show()
+
+
+DTC= DecisionTreeClassifier()
+
+DTC.fit(X_train,Y_train)
+
+# accuracy on training data
+X_train_prediction = LR.predict(X_train)
+training_data_accuracy = accuracy_score(X_train_prediction, Y_train)
+
+Y_pred= DTC.predict(X_test)
+
+test_data_accuracy = accuracy_score(Y_pred, Y_test)
+
+print('Accuracy on Training data : ', training_data_accuracy)
+
+print('Accuracy score on Test Data : ', test_data_accuracy)
+
+print(classification_report(Y_test,Y_pred))
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, roc_curve, auc
+from sklearn.tree import plot_tree
+
+# === 1. Confusion Matrix for Logistic Regression ===
+cm_LR = confusion_matrix(Y_test, Y_pred)
+
+plt.figure(figsize=(6,4))
+sns.heatmap(cm_LR, annot=True, fmt='d', cmap='Blues', xticklabels=['Negative', 'Positive'], yticklabels=['Negative', 'Positive'])
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix - DecisionTreeClassifier')
+plt.show()
+
+# === 2. Decision Tree Visualization ===
+plt.figure(figsize=(12,6))
+plot_tree(DTC, filled=True, feature_names=X_train.columns, class_names=['Negative', 'Positive'])
+plt.title("Decision Tree Visualization")
+plt.show()
+
+# === 3. ROC Curve for Logistic Regression (Only for Binary Classification) ===
+if len(set(Y_test)) == 2:  # Ensure it's a binary classification problem
+    Y_prob = LR.predict_proba(X_test)[:, 1]  # Probability of positive class
+    fpr, tpr, _ = roc_curve(Y_test, Y_prob)
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure(figsize=(6,4))
+    plt.plot(fpr, tpr, color='blue', label=f'ROC curve (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='gray', linestyle='--')  # Diagonal line for reference
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve - DecisionTreeClassifier')
+    plt.legend(loc='lower right')
+    plt.show()
+
+rfc= RandomForestClassifier()
+
+rfc.fit(X_train, Y_train)
+
+X_train_prediction = rfc.predict(X_train)
+training_data_accuracy = accuracy_score(X_train_prediction, Y_train)
+
+Y_pred= rfc.predict(X_test)
+
+print('Accuracy on Training data : ', training_data_accuracy)
+
+print('Accuracy score on Test Data : ', test_data_accuracy)
+
+print(classification_report(Y_test,Y_pred))
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, roc_curve, auc
+import numpy as np
+
+# === 1. Confusion Matrix ===
+cm = confusion_matrix(Y_test, Y_pred)
+
+plt.figure(figsize=(6,4))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Negative', 'Positive'], yticklabels=['Negative', 'Positive'])
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix - Random Forest')
+plt.show()
+
+
+# === 2. ROC Curve (For Binary Classification) ===
+if len(set(Y_test)) == 2:  # Check if it's binary classification
+    Y_prob = rfc.predict_proba(X_test)[:, 1]  # Probability of positive class
+    fpr, tpr, _ = roc_curve(Y_test, Y_prob)
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure(figsize=(6,4))
+    plt.plot(fpr, tpr, color='blue', label=f'ROC curve (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='gray', linestyle='--')  # Diagonal line for reference
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve - Random Forest')
+    plt.legend(loc='lower right')
+    plt.show()
+
+feature_importance = rfc.feature_importances_
+feature_names = X_train.columns
+
+plt.bar(range(len(feature_importance)), feature_importance, align="center")
+plt.xticks(range(len(feature_importance)), feature_names, rotation=90)
+plt.xlabel("Feature")
+plt.ylabel("Importance Score")
+plt.title("Feature Importance - Random Forest")
+plt.show()
